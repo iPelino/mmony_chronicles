@@ -1,0 +1,8 @@
+my_env/
+analysis_results
+db
+*.log
+*.csv
+*.xml
+temp.py
+
