@@ -47,7 +47,7 @@ def extract_transaction_data(sms_elements):
         # 3. Payments to Code Holders
         elif body.startswith("TxId"):
 
-           # Generalized matching logic for flexibility
+           # Generalized matching
             txn_id_match = re.search(r"TxId: (\d+)", body)
             amount_match = re.search(r"payment\s+of\s+([\d,]+)\s+RWF", body)  # Adjusted regex
             recipient_match = re.search(r"to (.+?) (\d+)", body)
@@ -276,15 +276,7 @@ def verify_processed_transactions(file_path):
     return processed_count, total_sms, processed_total
 
 
-
-
-def write_to_csv(df, output_file):
-    df.to_csv(output_file, index=False)
-
-# def write_to_json(df, output_file):
-#     df.to_json(output_file, orient="records")
-
-def push_to_sqlite_by_type(df, db_path="db/transactions_by_type_debug.db"):
+def push_to_sqlite_by_type(df, db_path="db/transactions_by_type_v3.db"):
     # Connect to SQLite database (or create it if it doesn't exist)
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
@@ -483,6 +475,12 @@ def push_to_sqlite_by_type(df, db_path="db/transactions_by_type_debug.db"):
 #     print(f"Extracted {len(txid_sms)} 'Payment to Code Holder' SMS messages.")
 
 
+def write_to_csv(df, output_file):
+    df.to_csv(output_file, index=False)
+
+# def write_to_json(df, output_file):
+#     df.to_json(output_file, orient="records")
+
 def log_ignored_messages(file_path, output_log="ignored_messages.log"):
     sms_elements = parse_xml(file_path)
     ignored_messages = []
@@ -520,10 +518,9 @@ def main(file_path):
     
     print(df)
 
-    # output_file = "cleaned_data.csv"
-    # output_file = "cleaned_data_v2.csv"
+    output_file = "cleaned_data_v3.csv"
     # output_file = "cleaned_data.json"
-    # write_to_csv(df, output_file)
+    write_to_csv(df, output_file)
     # write_to_json(df, output_file)
 
     verify_processed_transactions(file_path)

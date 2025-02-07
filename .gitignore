@@ -5,4 +5,7 @@ db
 *.csv
 *.xml
 temp.py
-
+.vscode
+analyze_data.py
+visualize_data.py
+*.sql
