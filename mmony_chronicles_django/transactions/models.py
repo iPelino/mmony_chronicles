@@ -1,6 +1,14 @@
 from django.db import models
 from django.conf import settings
 
+class XMLFile(models.Model):
+    file = models.FileField(upload_to='xml_files/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True, related_name='xml_files')
+
+    def __str__(self):
+        return f"XML file uploaded by {self.user} on {self.uploaded_at}"
+
 class IncomingMoney(models.Model):
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     sender = models.CharField(max_length=255)

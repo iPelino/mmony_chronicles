@@ -52,8 +52,10 @@ class UploadView(FormView):
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
-        xml_file = form.cleaned_data['xml_file']
-        process_xml_file(xml_file, self.request.user)
+        xml_file_instance = form.save(commit=False)
+        xml_file_instance.user = self.request.user
+        xml_file_instance.save()
+        process_xml_file(xml_file_instance.file, self.request.user)
         return super().form_valid(form)
 
 class DashboardView(TemplateView):

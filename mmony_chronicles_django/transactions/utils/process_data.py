@@ -239,6 +239,13 @@ def extract_transaction_data(sms_elements, user=None):
 
 # Main function to process XML file
 def process_xml_file(xml_file, user=None):
-    sms_elements = parse_xml(xml_file)
+    # If xml_file is a FileField from a model, open it
+    if hasattr(xml_file, 'path'):
+        with open(xml_file.path, 'rb') as f:
+            sms_elements = parse_xml(f)
+    else:
+        # For backward compatibility, handle direct file objects
+        sms_elements = parse_xml(xml_file)
+
     extract_transaction_data(sms_elements, user)
     print(f"XML file processed successfully with {len(sms_elements)} SMS messages.")
