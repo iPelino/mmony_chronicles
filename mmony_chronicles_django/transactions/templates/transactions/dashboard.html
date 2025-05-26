@@ -1,0 +1,383 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Mobile Money Chronicles{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Mobile Money Transaction Dashboard</h1>
+
+{% if not daily_transactions %}
+<div class="alert alert-warning">
+    <p>No transaction data available. Please <a href="{% url 'upload' %}">upload</a> your transaction data first.</p>
+</div>
+{% else %}
+
+<!-- Transaction Summary Modal -->
+<div class="modal fade" id="transactionSummaryModal" tabindex="-1" aria-labelledby="transactionSummaryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="transactionSummaryModalLabel">Transaction Summary</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="transactionSummaryModalBody">
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Loading transaction summary...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a href="#" class="btn btn-primary" id="viewFullHistoryBtn">View Full History</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Daily Transaction Volume -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h3>Daily Transaction Volume</h3>
+    </div>
+    <div class="card-body">
+        <div id="daily-transaction-volume-chart"></div>
+    </div>
+</div>
+
+<!-- Daily Transaction Amount -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h3>Daily Transaction Amount</h3>
+    </div>
+    <div class="card-body">
+        <div id="daily-transaction-amount-chart"></div>
+    </div>
+</div>
+
+<!-- Top Mobile Transfer Recipients -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h3>Top Mobile Transfer Recipients</h3>
+    </div>
+    <div class="card-body">
+        <div id="top-recipients-chart"></div>
+    </div>
+</div>
+
+<!-- Top Code Holder Recipients -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h3>Top Code Holder Recipients</h3>
+    </div>
+    <div class="card-body">
+        <div id="top-code-holders-chart"></div>
+    </div>
+</div>
+
+<!-- Top Agents by Withdrawal Volume -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h3>Top Agents by Withdrawal Volume</h3>
+    </div>
+    <div class="card-body">
+        <div id="top-agents-chart"></div>
+    </div>
+</div>
+
+<!-- Bundle Purchases -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h3>Bundle Purchases</h3>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <div id="internet-bundles-chart"></div>
+            </div>
+            <div class="col-md-6">
+                <div id="voice-bundles-chart"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Transaction Summary -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h3>Transaction Summary</h3>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h3>{{ daily_transactions|length }}</h3>
+                        <p>Total Transactions</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if daily_transactions %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Parse JSON data from Django
+        const dailyTransactions = JSON.parse('{{ daily_transactions_json|safe }}');
+        const topRecipients = JSON.parse('{{ top_recipients_json|safe }}');
+        const topRecipientsCodeHolders = JSON.parse('{{ top_recipients_code_holders_json|safe }}');
+        const topAgents = JSON.parse('{{ top_agents_json|safe }}');
+        const bundleAnalysis = JSON.parse('{{ bundle_analysis_json|safe }}');
+
+        // Initialize the transaction summary modal
+        const transactionSummaryModal = new bootstrap.Modal(document.getElementById('transactionSummaryModal'));
+
+        // Function to show transaction summary for a recipient or code holder
+        window.showTransactionSummary = function(type, name) {
+            // Update modal title
+            const modalTitle = document.getElementById('transactionSummaryModalLabel');
+            modalTitle.textContent = type === 'receiver' ? 
+                `Mobile Recipient: ${name}` : 
+                `Code Holder: ${name}`;
+
+            // Show loading spinner
+            const modalBody = document.getElementById('transactionSummaryModalBody');
+            modalBody.innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Loading transaction summary...</p>
+                </div>
+            `;
+
+            // Set the "View Full History" button URL
+            const viewFullHistoryBtn = document.getElementById('viewFullHistoryBtn');
+            viewFullHistoryBtn.href = type === 'receiver' ? 
+                `{% url 'receiver_history' %}?receiver=${encodeURIComponent(name)}` : 
+                `{% url 'receiver_history' %}?code_holder=${encodeURIComponent(name)}`;
+
+            // Show the modal
+            transactionSummaryModal.show();
+
+            // Get transaction data
+            let transactionData;
+            if (type === 'receiver') {
+                transactionData = topRecipients.find(r => r.recipient === name);
+            } else {
+                transactionData = topRecipientsCodeHolders.find(r => r.recipient === name);
+            }
+
+            if (transactionData) {
+                // Create summary HTML
+                const summaryHTML = `
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Transaction Summary</h5>
+                            <p class="card-text">Total Amount: <strong>${transactionData.total_amount} RWF</strong></p>
+                            <p class="card-text">Number of Transactions: <strong>${transactionData.transaction_count}</strong></p>
+                            <p class="card-text">Average Transaction Amount: <strong>${(transactionData.total_amount / transactionData.transaction_count).toFixed(2)} RWF</strong></p>
+                        </div>
+                    </div>
+                    <div class="alert alert-info">
+                        <p>Click "View Full History" to see detailed transaction history for this ${type === 'receiver' ? 'recipient' : 'code holder'}.</p>
+                    </div>
+                `;
+
+                // Update modal body with summary
+                modalBody.innerHTML = summaryHTML;
+            } else {
+                // Show error message
+                modalBody.innerHTML = `
+                    <div class="alert alert-warning">
+                        <p>No transaction data found for this ${type === 'receiver' ? 'recipient' : 'code holder'}.</p>
+                    </div>
+                `;
+            }
+        };
+
+        // Daily Transaction Volume Chart
+        const dailyTransactionVolume = {};
+        dailyTransactions.forEach(tx => {
+            if (!dailyTransactionVolume[tx.day]) {
+                dailyTransactionVolume[tx.day] = {};
+            }
+            dailyTransactionVolume[tx.day][tx.type] = tx.transaction_count;
+        });
+
+        const days = Object.keys(dailyTransactionVolume).sort();
+        const transactionTypes = [...new Set(dailyTransactions.map(tx => tx.type))];
+
+        const volumeTraces = transactionTypes.map(type => {
+            return {
+                x: days,
+                y: days.map(day => dailyTransactionVolume[day][type] || 0),
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: type
+            };
+        });
+
+        Plotly.newPlot('daily-transaction-volume-chart', volumeTraces, {
+            title: 'Transactions Over Time',
+            xaxis: { title: 'Day' },
+            yaxis: { title: 'Transaction Count' }
+        });
+
+        // Daily Transaction Amount Chart
+        const dailyTransactionAmount = {};
+        dailyTransactions.forEach(tx => {
+            if (!dailyTransactionAmount[tx.day]) {
+                dailyTransactionAmount[tx.day] = {};
+            }
+            dailyTransactionAmount[tx.day][tx.type] = tx.total_amount;
+        });
+
+        const amountTraces = transactionTypes.map(type => {
+            return {
+                x: days,
+                y: days.map(day => dailyTransactionAmount[day][type] || 0),
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: type
+            };
+        });
+
+        Plotly.newPlot('daily-transaction-amount-chart', amountTraces, {
+            title: 'Transaction Amount Over Time',
+            xaxis: { title: 'Day' },
+            yaxis: { title: 'Total Amount (RWF)' }
+        });
+
+        // Top Mobile Transfer Recipients Chart
+        const topRecipientsData = {
+            x: topRecipients.map(r => r.recipient),
+            y: topRecipients.map(r => r.total_amount),
+            type: 'bar',
+            marker: {
+                color: themeColors.grass,
+                opacity: 0.8
+            }
+        };
+
+        Plotly.newPlot('top-recipients-chart', [topRecipientsData], {
+            title: 'Top Mobile Transfer Recipients',
+            xaxis: { 
+                title: 'Recipient',
+                tickangle: -45
+            },
+            yaxis: { title: 'Total Amount (RWF)' }
+        });
+
+        // Add click event for Top Mobile Transfer Recipients
+        document.getElementById('top-recipients-chart').on('plotly_click', function(data) {
+            const pointIndex = data.points[0].pointIndex;
+            const recipient = topRecipients[pointIndex].recipient;
+            showTransactionSummary('receiver', recipient);
+        });
+
+        // Top Code Holder Recipients Chart
+        const topCodeHoldersData = {
+            x: topRecipientsCodeHolders.map(r => r.recipient),
+            y: topRecipientsCodeHolders.map(r => r.total_amount),
+            type: 'bar',
+            marker: {
+                color: themeColors.lime,
+                opacity: 0.8
+            }
+        };
+
+        Plotly.newPlot('top-code-holders-chart', [topCodeHoldersData], {
+            title: 'Top Code Holder Recipients',
+            xaxis: { 
+                title: 'Recipient',
+                tickangle: -45
+            },
+            yaxis: { title: 'Total Amount (RWF)' }
+        });
+
+        // Add click event for Top Code Holder Recipients
+        document.getElementById('top-code-holders-chart').on('plotly_click', function(data) {
+            const pointIndex = data.points[0].pointIndex;
+            const codeHolder = topRecipientsCodeHolders[pointIndex].recipient;
+            showTransactionSummary('code_holder', codeHolder);
+        });
+
+        // Top Agents Chart
+        const topAgentsData = {
+            x: topAgents.map(a => a.agent_name),
+            y: topAgents.map(a => a.total_amount),
+            type: 'bar',
+            marker: {
+                color: themeColors.yellow,
+                opacity: 0.8
+            }
+        };
+
+        Plotly.newPlot('top-agents-chart', [topAgentsData], {
+            title: 'Agent Performance',
+            xaxis: { title: 'Agent Name' },
+            yaxis: { title: 'Total Amount (RWF)' }
+        });
+
+        // Internet Bundle Chart
+        if (bundleAnalysis.internet && bundleAnalysis.internet.length > 0) {
+            const internetBundleData = {
+                labels: bundleAnalysis.internet.map(b => `${b.bundle_size}${b.unit} (${b.purchase_count} purchases, ${b.total_amount} RWF)`),
+                values: bundleAnalysis.internet.map(b => b.purchase_count),
+                type: 'pie',
+                hole: 0.4,
+                marker: {
+                    colors: [
+                        themeColors.grass, 
+                        themeColors.lime, 
+                        themeColors.yellow, 
+                        '#7CB518', // Lighter grass
+                        '#5C8001', // Darker grass
+                        '#98CE00'  // Medium lime
+                    ]
+                },
+                textinfo: 'label+percent',
+                hoverinfo: 'label+value+percent'
+            };
+
+            Plotly.newPlot('internet-bundles-chart', [internetBundleData], {
+                title: 'Internet Bundle Sizes'
+            });
+        }
+
+        // Voice Bundle Chart
+        if (bundleAnalysis.voice && bundleAnalysis.voice.length > 0) {
+            const voiceBundleData = {
+                labels: bundleAnalysis.voice.map(b => `${b.minutes} minutes (${b.purchase_count} purchases, ${b.total_amount} RWF)`),
+                values: bundleAnalysis.voice.map(b => b.purchase_count),
+                type: 'pie',
+                hole: 0.4,
+                marker: {
+                    colors: [
+                        themeColors.grass, 
+                        themeColors.lime, 
+                        themeColors.yellow, 
+                        '#7CB518', // Lighter grass
+                        '#5C8001', // Darker grass
+                        '#98CE00'  // Medium lime
+                    ]
+                },
+                textinfo: 'label+percent',
+                hoverinfo: 'label+value+percent'
+            };
+
+            Plotly.newPlot('voice-bundles-chart', [voiceBundleData], {
+                title: 'Voice Bundle Minutes'
+            });
+        }
+    });
+</script>
+{% endif %}
+{% endblock %}

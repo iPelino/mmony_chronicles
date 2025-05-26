@@ -1,0 +1,426 @@
+/* Custom styles for Mobile Money Chronicles */
+
+/* Color Variables */
+:root {
+    --grass: #2E7D32; /* Primary brand/dark accent - vibrant green */
+    --lime: #81C784;  /* Buttons, highlights - medium green */
+    --yellow: #FFC107; /* Attention areas, call-outs - amber yellow */
+    --white: #F5F5F5; /* Light text, UI contrast - off-white */
+    --dark-bg: #263238; /* Dark background - blue-gray, lighter than before */
+    --dark-card: #37474F; /* Dark card background - lighter blue-gray */
+    --dark-accent: #455A64; /* Dark accent for tables, etc. - medium blue-gray */
+}
+
+/* Typography */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-weight: 400; /* Regular for body text */
+    color: var(--white);
+    background-color: var(--dark-bg);
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 700; /* Bold for titles and headers */
+    color: var(--lime);
+}
+
+.subheading, .nav-link, .btn, .card-header, th {
+    font-weight: 500; /* Medium for subheadings and UI labels */
+}
+
+/* Navbar styling */
+.navbar-dark.bg-primary {
+    background-color: var(--grass) !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.navbar-dark .navbar-brand, 
+.navbar-dark .nav-link {
+    color: var(--white);
+    transition: all 0.3s ease;
+    position: relative;
+    padding: 0.5rem 1rem;
+}
+
+.navbar-dark .navbar-brand {
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.navbar-dark .navbar-brand:hover {
+    color: var(--lime);
+    transform: scale(1.05);
+}
+
+.navbar-dark .nav-link:hover {
+    color: var(--lime);
+}
+
+.navbar-dark .nav-link::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    bottom: 0;
+    left: 50%;
+    background-color: var(--lime);
+    transition: all 0.3s ease;
+    transform: translateX(-50%);
+}
+
+.navbar-dark .nav-link:hover::after,
+.navbar-dark .nav-link.active::after {
+    width: 80%;
+}
+
+.navbar-dark .nav-link.active {
+    color: var(--lime);
+    font-weight: 500;
+}
+
+/* Jumbotron styling */
+.jumbotron {
+    background-color: var(--dark-card);
+    background-image: linear-gradient(135deg, var(--dark-card) 0%, var(--dark-bg) 100%);
+    padding: 3rem 2rem;
+    border-radius: 0.5rem;
+    margin-bottom: 3rem;
+    border-left: 5px solid var(--lime);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.jumbotron::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    background-image: radial-gradient(circle at top right, rgba(129, 199, 132, 0.1) 0%, transparent 70%);
+    z-index: 0;
+}
+
+.jumbotron > * {
+    position: relative;
+    z-index: 1;
+}
+
+.jumbotron p {
+    color: #FFFFFF; /* Pure white for maximum contrast */
+    margin-bottom: 1.5rem;
+    max-width: 700px;
+}
+
+.jumbotron .btn {
+    padding: 0.75rem 1.5rem;
+    font-size: 1.1rem;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Card styling */
+.card {
+    margin-bottom: 1.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.3);
+    border-color: var(--grass);
+    background-color: var(--dark-card);
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
+    border-color: var(--lime);
+}
+
+.card-header {
+    background-color: var(--grass);
+    color: var(--white);
+}
+
+/* Chart container */
+.chart-container {
+    height: 400px;
+    margin-bottom: 30px;
+    background-color: var(--dark-card);
+    border: 1px solid var(--grass);
+    border-radius: 0.3rem;
+}
+
+/* Table styling */
+.table {
+    background-color: var(--dark-card);
+    color: var(--white);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    border-collapse: separate;
+    border-spacing: 0;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    margin-bottom: 2rem;
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: var(--dark-accent); /* Dark accent for striped rows */
+}
+
+.table-striped tbody tr {
+    transition: all 0.2s ease;
+}
+
+.table-striped tbody tr:hover {
+    background-color: rgba(129, 199, 132, 0.1); /* Lime with low opacity */
+    transform: translateY(-2px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.table thead th {
+    background-color: var(--grass);
+    color: var(--white);
+    border-bottom: none;
+    padding: 1rem 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+}
+
+.table td {
+    padding: 0.75rem;
+    vertical-align: middle;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Responsive tables */
+@media (max-width: 768px) {
+    .table-responsive {
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+}
+
+/* Form styling */
+.form-control {
+    margin-bottom: 1rem;
+    border-color: var(--grass);
+    background-color: var(--dark-accent);
+    color: var(--white);
+    transition: all 0.3s ease;
+    border-width: 2px;
+    border-radius: 0.25rem;
+}
+
+.form-control:focus {
+    border-color: var(--lime);
+    box-shadow: 0 0 0 0.2rem rgba(129, 199, 132, 0.25);
+    background-color: var(--dark-accent);
+    color: var(--white);
+    transform: translateY(-2px);
+}
+
+.form-control:hover {
+    border-color: var(--lime);
+}
+
+/* Custom file input styling */
+.custom-file-label {
+    background-color: var(--dark-accent);
+    color: var(--white);
+    border-color: var(--grass);
+    transition: all 0.3s ease;
+}
+
+.custom-file-label::after {
+    background-color: var(--grass);
+    color: var(--white);
+}
+
+.custom-file-input:focus ~ .custom-file-label {
+    border-color: var(--lime);
+    box-shadow: 0 0 0 0.2rem rgba(129, 199, 132, 0.25);
+}
+
+/* Button styling */
+.btn-primary {
+    background-color: var(--lime);
+    border-color: var(--lime);
+    color: var(--dark-bg);
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    background-color: var(--grass);
+    border-color: var(--grass);
+    color: var(--white);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Alert and attention areas */
+.alert-warning, .badge-warning {
+    background-color: rgba(255, 193, 7, 0.15); /* Yellow with opacity */
+    color: var(--yellow);
+    border-color: var(--yellow);
+}
+
+.alert-info, .badge-info {
+    background-color: rgba(129, 199, 132, 0.15); /* Lime with opacity */
+    color: var(--lime);
+    border-color: var(--lime);
+}
+
+/* Text colors */
+.text-muted {
+    color: rgba(245, 245, 245, 0.7) !important; /* White with opacity */
+}
+
+/* Footer styling */
+footer.bg-light {
+    background-color: var(--dark-accent) !important;
+    color: var(--white);
+    border-top: 2px solid var(--grass);
+    padding: 1.5rem 0;
+    margin-top: 4rem;
+    box-shadow: 0 -5px 10px rgba(0, 0, 0, 0.1);
+    position: relative;
+}
+
+footer.bg-light::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--lime), transparent);
+}
+
+footer.bg-light p {
+    color: var(--white);
+    margin-bottom: 0;
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+}
+
+footer.bg-light a {
+    color: var(--lime);
+    transition: all 0.3s ease;
+    text-decoration: none;
+}
+
+footer.bg-light a:hover {
+    color: var(--yellow);
+    text-decoration: underline;
+}
+
+/* Card bg-light styling (for statistics cards) */
+.card.bg-light {
+    background-color: var(--dark-accent) !important;
+    border: 1px solid var(--lime);
+}
+
+.card.bg-light h3 {
+    color: var(--lime);
+    font-weight: 700;
+}
+
+.card.bg-light p {
+    color: var(--white);
+    font-weight: 500;
+}
+
+/* Jumbotron typography */
+.display-4 {
+    font-weight: 700;
+    color: var(--lime);
+}
+
+.lead {
+    font-weight: 500;
+    color: #FFFFFF; /* Pure white for maximum contrast */
+}
+
+/* Horizontal rule styling */
+hr.my-4 {
+    border-color: var(--lime);
+    opacity: 0.5;
+}
+
+/* Chart styling */
+[id$="-chart"] {
+    height: 400px !important;
+    border: 1px solid var(--grass);
+    border-radius: 0.3rem;
+    padding: 10px;
+    background-color: var(--dark-card);
+}
+
+/* Override Plotly colors with our theme */
+.js-plotly-plot .plotly .scatter .lines {
+    stroke: var(--grass) !important;
+}
+
+.js-plotly-plot .plotly .scatter .points {
+    stroke: var(--grass) !important;
+    fill: var(--grass) !important;
+}
+
+.js-plotly-plot .plotly .bars .point {
+    fill: var(--grass) !important;
+    opacity: 0.8;
+}
+
+.js-plotly-plot .plotly .pie .surface {
+    fill: var(--grass) !important;
+}
+
+/* Chart title styling */
+.gtitle {
+    font-weight: 700 !important;
+    fill: var(--grass) !important;
+}
+
+/* Axis title styling */
+.g-xtitle, .g-ytitle {
+    font-weight: 500 !important;
+    fill: #37474F !important;
+}
+
+/* Axis tick styling */
+.xtick text, .ytick text {
+    font-weight: 400 !important;
+    fill: #455A64 !important;
+}
+
+/* Scroll to top button */
+.scroll-to-top {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--grass);
+    color: var(--white);
+    text-align: center;
+    line-height: 40px;
+    font-size: 20px;
+    cursor: pointer;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+}
+
+.scroll-to-top.visible {
+    opacity: 0.8;
+    visibility: visible;
+}
+
+.scroll-to-top:hover {
+    opacity: 1;
+    transform: translateY(-5px);
+    background-color: var(--lime);
+}

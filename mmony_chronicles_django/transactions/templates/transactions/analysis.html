@@ -1,0 +1,363 @@
+{% extends 'base.html' %}
+
+{% block title %}Analysis - Mobile Money Chronicles{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Transaction Analysis</h1>
+
+{% if not transaction_summary %}
+<div class="alert alert-warning">
+    <p>No transaction data available for analysis. Please <a href="{% url 'upload' %}">upload</a> your transaction data first.</p>
+</div>
+{% else %}
+
+<!-- Transaction Summary -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h3>Transaction Summary</h3>
+    </div>
+    <div class="card-body">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Transaction Type</th>
+                    <th>Total Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for type, amount in transaction_summary.items %}
+                <tr>
+                    <td>{{ type }}</td>
+                    <td>{{ amount }} RWF</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Transaction Costs -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h3>Transaction Costs</h3>
+    </div>
+    <div class="card-body" id="transaction-costs-card-body">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Transaction Type</th>
+                    <th>Total Fees</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for type, amount in transaction_costs.items %}
+                <tr>
+                    <td>{{ type }}</td>
+                    <td>{{ amount }} RWF</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div id="transaction-costs-chart" class="mt-4"></div>
+    </div>
+</div>
+
+<!-- Monthly Trends -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h3>Monthly Trends</h3>
+    </div>
+    <div class="card-body">
+        <div id="monthly-trends-chart"></div>
+    </div>
+</div>
+
+<!-- Transaction Frequency -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h3>Transaction Frequency</h3>
+    </div>
+    <div class="card-body">
+        <div id="transaction-frequency-chart"></div>
+    </div>
+</div>
+
+<!-- Anomalies -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h3>Anomalies</h3>
+        <p class="text-muted mb-0">Transactions that deviate significantly from normal patterns</p>
+    </div>
+    <div class="card-body">
+        {% if anomalies %}
+        <div class="alert alert-info mb-4">
+            <h5>About Anomaly Detection</h5>
+            <p>Our system identifies three types of anomalies:</p>
+            <ul>
+                <li><strong>High Amount:</strong> Transactions that exceed the overall threshold (mean + 3 standard deviations)</li>
+                <li><strong>Type-Specific High Amount:</strong> Transactions that exceed the threshold for their specific transaction type</li>
+                <li><strong>Unusual Time:</strong> Transactions that occur during late night or early morning hours (10 PM - 5 AM)</li>
+            </ul>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Anomaly Type</th>
+                        <th>Transaction Type</th>
+                        <th>Amount</th>
+                        <th>Date/Time</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for anomaly in anomalies %}
+                    <tr>
+                        <td>
+                            <span class="badge {% if 'High Amount' in anomaly.anomaly_type %}bg-danger{% elif 'Unusual Time' in anomaly.anomaly_type %}bg-warning text-dark{% else %}bg-primary{% endif %}">
+                                {{ anomaly.anomaly_type }}
+                            </span>
+                        </td>
+                        <td>{{ anomaly.type }}</td>
+                        <td>{{ anomaly.amount }} RWF</td>
+                        <td>{{ anomaly.date_time }}</td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#anomalyModal{{ forloop.counter }}">
+                                View Details
+                            </button>
+
+                            <!-- Modal for anomaly details -->
+                            <div class="modal fade" id="anomalyModal{{ forloop.counter }}" tabindex="-1" aria-labelledby="anomalyModalLabel{{ forloop.counter }}" aria-hidden="true">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="anomalyModalLabel{{ forloop.counter }}">Anomaly Details</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <h6>Transaction Information</h6>
+                                                    <ul class="list-group mb-3">
+                                                        <li class="list-group-item d-flex justify-content-between">
+                                                            <span>Transaction Type:</span>
+                                                            <strong>{{ anomaly.type }}</strong>
+                                                        </li>
+                                                        <li class="list-group-item d-flex justify-content-between">
+                                                            <span>Amount:</span>
+                                                            <strong>{{ anomaly.amount }} RWF</strong>
+                                                        </li>
+                                                        <li class="list-group-item d-flex justify-content-between">
+                                                            <span>Date/Time:</span>
+                                                            <strong>{{ anomaly.date_time }}</strong>
+                                                        </li>
+                                                        {% if anomaly.description %}
+                                                        <li class="list-group-item d-flex justify-content-between">
+                                                            <span>Description:</span>
+                                                            <strong>{{ anomaly.description }}</strong>
+                                                        </li>
+                                                        {% endif %}
+                                                        {% if anomaly.sender %}
+                                                        <li class="list-group-item d-flex justify-content-between">
+                                                            <span>Sender:</span>
+                                                            <strong>{{ anomaly.sender }}</strong>
+                                                        </li>
+                                                        {% endif %}
+                                                        {% if anomaly.recipient %}
+                                                        <li class="list-group-item d-flex justify-content-between">
+                                                            <span>Recipient:</span>
+                                                            <strong>{{ anomaly.recipient }}</strong>
+                                                        </li>
+                                                        {% endif %}
+                                                    </ul>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <h6>Anomaly Analysis</h6>
+                                                    <ul class="list-group">
+                                                        <li class="list-group-item d-flex justify-content-between">
+                                                            <span>Anomaly Type:</span>
+                                                            <strong>{{ anomaly.anomaly_type }}</strong>
+                                                        </li>
+
+                                                        {% if 'High Amount' in anomaly.anomaly_type %}
+                                                            <li class="list-group-item d-flex justify-content-between">
+                                                                <span>Threshold:</span>
+                                                                <strong>{{ anomaly.threshold|floatformat:2 }} RWF</strong>
+                                                            </li>
+                                                            <li class="list-group-item d-flex justify-content-between">
+                                                                <span>Deviation:</span>
+                                                                <strong>{{ anomaly.deviation_percent|floatformat:2 }}% above threshold</strong>
+                                                            </li>
+
+                                                            {% if 'for' in anomaly.anomaly_type %}
+                                                                <li class="list-group-item d-flex justify-content-between">
+                                                                    <span>Type Average:</span>
+                                                                    <strong>{{ anomaly.type_mean|floatformat:2 }} RWF</strong>
+                                                                </li>
+                                                                <li class="list-group-item d-flex justify-content-between">
+                                                                    <span>Times Above Type Average:</span>
+                                                                    <strong>{{ anomaly.times_above_type_mean }}x</strong>
+                                                                </li>
+                                                            {% else %}
+                                                                <li class="list-group-item d-flex justify-content-between">
+                                                                    <span>Overall Average:</span>
+                                                                    <strong>{{ anomaly.overall_mean|floatformat:2 }} RWF</strong>
+                                                                </li>
+                                                                <li class="list-group-item d-flex justify-content-between">
+                                                                    <span>Times Above Overall Average:</span>
+                                                                    <strong>{{ anomaly.times_above_mean }}x</strong>
+                                                                </li>
+                                                            {% endif %}
+                                                        {% endif %}
+
+                                                        {% if 'Unusual Time' in anomaly.anomaly_type %}
+                                                            <li class="list-group-item d-flex justify-content-between">
+                                                                <span>Hour of Transaction:</span>
+                                                                <strong>{{ anomaly.unusual_hour }}:00</strong>
+                                                            </li>
+                                                            <li class="list-group-item d-flex justify-content-between">
+                                                                <span>Reason:</span>
+                                                                <strong>Transactions between 10 PM and 5 AM are unusual</strong>
+                                                            </li>
+                                                        {% endif %}
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-success">
+            <p class="mb-0">No anomalies detected in your transaction data.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Balance Trends -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h3>Balance Trends</h3>
+    </div>
+    <div class="card-body">
+        <div id="balance-trends-chart"></div>
+    </div>
+</div>
+
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if transaction_summary %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Parse JSON data from Django
+        const transactionSummary = JSON.parse('{{ transaction_summary_json|safe }}');
+        const monthlyTrends = JSON.parse('{{ monthly_trends_json|safe }}');
+        const transactionFrequency = JSON.parse('{{ transaction_frequency_json|safe }}');
+        const balanceTrends = JSON.parse('{{ balance_trends_json|safe }}');
+        const transactionCosts = JSON.parse('{{ transaction_costs_json|safe }}');
+
+        // Transaction Summary Chart (convert table to chart)
+        const summaryData = {
+            x: Object.keys(transactionSummary),
+            y: Object.values(transactionSummary),
+            type: 'bar',
+            marker: {
+                color: themeColors.grass,
+                opacity: 0.8
+            }
+        };
+
+        // Monthly Trends Chart
+        if (monthlyTrends && monthlyTrends.length > 0) {
+            const months = monthlyTrends.map(item => item.month);
+            const transactionTypes = Object.keys(monthlyTrends[0]).filter(key => key !== 'month');
+
+            const monthlyTraces = transactionTypes.map(type => {
+                return {
+                    x: months,
+                    y: monthlyTrends.map(item => item[type] || 0),
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    name: type
+                };
+            });
+
+            Plotly.newPlot('monthly-trends-chart', monthlyTraces, {
+                title: 'Monthly Transaction Trends',
+                xaxis: { title: 'Month' },
+                yaxis: { title: 'Amount (RWF)' }
+            });
+        }
+
+        // Transaction Frequency Chart
+        if (transactionFrequency && transactionFrequency.length > 0) {
+            const frequencyData = {
+                x: transactionFrequency.map(item => item.date),
+                y: transactionFrequency.map(item => item.count),
+                type: 'bar',
+                marker: {
+                    color: themeColors.lime,
+                    opacity: 0.8
+                }
+            };
+
+            Plotly.newPlot('transaction-frequency-chart', [frequencyData], {
+                title: 'Transaction Frequency by Date',
+                xaxis: { title: 'Date' },
+                yaxis: { title: 'Number of Transactions' }
+            });
+        }
+
+        // Balance Trends Chart
+        if (balanceTrends && balanceTrends.length > 0) {
+            const balanceData = {
+                x: balanceTrends.map(item => item.date_time),
+                y: balanceTrends.map(item => item.balance),
+                type: 'scatter',
+                mode: 'lines',
+                line: {
+                    color: themeColors.grass,
+                    width: 2
+                }
+            };
+
+            Plotly.newPlot('balance-trends-chart', [balanceData], {
+                title: 'Balance Over Time',
+                xaxis: { title: 'Date' },
+                yaxis: { title: 'Balance (RWF)' }
+            });
+        }
+
+        // Transaction Costs Chart (convert table to chart)
+        const costsData = {
+            x: Object.keys(transactionCosts),
+            y: Object.values(transactionCosts),
+            type: 'bar',
+            marker: {
+                color: themeColors.yellow,
+                opacity: 0.8
+            }
+        };
+
+        Plotly.newPlot('transaction-costs-chart', [costsData], {
+            title: 'Transaction Costs by Type',
+            xaxis: { title: 'Transaction Type' },
+            yaxis: { title: 'Total Fees (RWF)' }
+        });
+    });
+</script>
+{% endif %}
+{% endblock %}

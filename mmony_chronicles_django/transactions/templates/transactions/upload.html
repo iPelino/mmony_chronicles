@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block title %}Upload - Mobile Money Chronicles{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-header">
+                <h2>Upload XML Transaction Data</h2>
+            </div>
+            <div class="card-body">
+                <p class="lead">Upload your XML file containing mobile money transaction data to begin analysis.</p>
+                
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        {{ form.xml_file.label_tag }}
+                        {{ form.xml_file }}
+                        {% if form.xml_file.help_text %}
+                            <small class="form-text text-muted">{{ form.xml_file.help_text }}</small>
+                        {% endif %}
+                        {% if form.xml_file.errors %}
+                            <div class="alert alert-danger mt-2">
+                                {{ form.xml_file.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Upload and Process</button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <h3>Instructions</h3>
+            </div>
+            <div class="card-body">
+                <ol>
+                    <li>Prepare your XML file containing mobile money transaction data.</li>
+                    <li>Click the "Choose File" button to select your XML file.</li>
+                    <li>Click "Upload and Process" to upload and process the data.</li>
+                    <li>Once processing is complete, you will be redirected to the dashboard.</li>
+                </ol>
+                
+                <div class="alert alert-info">
+                    <strong>Note:</strong> The XML file should contain SMS messages with mobile money transaction data.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

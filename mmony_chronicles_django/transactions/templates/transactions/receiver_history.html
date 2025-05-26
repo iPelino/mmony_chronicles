@@ -1,0 +1,382 @@
+{% extends 'base.html' %}
+
+{% block title %}Receiver Transaction History - Mobile Money Chronicles{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Custom DateRangePicker styling to match dark theme */
+    .daterangepicker {
+        background-color: var(--dark-card);
+        border: 1px solid var(--grass);
+        color: var(--white);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.3);
+    }
+
+    .daterangepicker .calendar-table {
+        background-color: var(--dark-card);
+        border: none;
+    }
+
+    .daterangepicker td.available:hover, 
+    .daterangepicker th.available:hover {
+        background-color: var(--grass);
+        color: var(--white);
+        border-radius: 4px;
+    }
+
+    .daterangepicker td.active, 
+    .daterangepicker td.active:hover {
+        background-color: var(--lime);
+        color: var(--dark-bg);
+        font-weight: bold;
+        border-radius: 4px;
+    }
+
+    .daterangepicker .drp-buttons {
+        border-top: 1px solid var(--grass);
+    }
+
+    .daterangepicker .drp-selected {
+        color: var(--white);
+    }
+
+    .daterangepicker .ranges li {
+        color: var(--white);
+        background-color: var(--dark-card);
+    }
+
+    .daterangepicker .ranges li:hover {
+        background-color: var(--grass);
+        color: var(--white);
+    }
+
+    .daterangepicker .ranges li.active {
+        background-color: var(--lime);
+        color: var(--dark-bg);
+    }
+
+    .daterangepicker:after {
+        border-bottom-color: var(--dark-card);
+    }
+
+    .daterangepicker:before {
+        border-bottom-color: var(--grass);
+    }
+
+    .daterangepicker .calendar-table .next span, 
+    .daterangepicker .calendar-table .prev span {
+        border-color: var(--white);
+    }
+
+    .daterangepicker .calendar-table th {
+        color: var(--lime);
+    }
+
+    .daterangepicker td.off, 
+    .daterangepicker td.off.in-range, 
+    .daterangepicker td.off.start-date, 
+    .daterangepicker td.off.end-date {
+        background-color: var(--dark-accent);
+        color: rgba(245, 245, 245, 0.4);
+    }
+
+    .daterangepicker td.in-range {
+        background-color: rgba(129, 199, 132, 0.2);
+        color: var(--white);
+    }
+
+    /* Fix for input group spacing */
+    .input-group {
+        margin-bottom: 0;
+    }
+
+    /* Fix for button spacing */
+    .btn {
+        margin-right: 0.5rem;
+    }
+
+    /* Fix for icon height and colors in input groups */
+    .input-group-text {
+        background-color: var(--grass);
+        border-color: var(--grass);
+        color: var(--white);
+        height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .input-group-text i {
+        font-size: 1.1rem;
+    }
+
+    .input-group:focus-within .input-group-text {
+        background-color: var(--lime);
+        border-color: var(--lime);
+        color: var(--dark-bg);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Receiver Transaction History</h1>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h3>Filter Transactions</h3>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4 col-sm-12 mb-3">
+                <label for="date_range" class="form-label">Date Range</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-calendar-range"></i></span>
+                    <input type="text" class="form-control" id="date_range" name="date_range" placeholder="Select date range">
+                </div>
+                <input type="hidden" id="start_date" name="start_date" value="{{ filter_params.start_date }}">
+                <input type="hidden" id="end_date" name="end_date" value="{{ filter_params.end_date }}">
+            </div>
+            <div class="col-md-4 col-sm-6 mb-3">
+                <label for="code_holder" class="form-label">Code Holder</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-person"></i></span>
+                    <input type="text" class="form-control" id="code_holder" name="code_holder" value="{{ filter_params.code_holder }}" placeholder="Enter code holder name">
+                </div>
+            </div>
+            <div class="col-md-4 col-sm-6 mb-3">
+                <label for="receiver" class="form-label">Receiver</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-person-check"></i></span>
+                    <input type="text" class="form-control" id="receiver" name="receiver" value="{{ filter_params.receiver }}" placeholder="Enter receiver name or number">
+                </div>
+            </div>
+            <div class="col-12 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-filter"></i> Apply Filters</button>
+                <a href="{% url 'receiver_history' %}" class="btn btn-secondary"><i class="bi bi-x-circle"></i> Clear Filters</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if error_messages %}
+<div class="alert alert-danger mb-3">
+    <strong>Error:</strong>
+    <ul class="mb-0">
+        {% for error in error_messages %}
+        <li>{{ error }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+{% if filter_status %}
+<div class="alert alert-success mb-3">
+    <strong>Filtered results:</strong> {{ filter_status }}
+</div>
+{% endif %}
+
+{% if not transactions %}
+<div class="alert alert-info">
+    <p>No transactions found matching your criteria. Try adjusting your filters or <a href="{% url 'upload' %}">upload</a> more transaction data.</p>
+</div>
+{% else %}
+<div class="card">
+    <div class="card-header">
+        <h3>Transaction History</h3>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Date/Time</th>
+                        <th>Type</th>
+                        <th>Recipient</th>
+                        <th>Amount</th>
+                        <th>Transaction ID</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tx in transactions %}
+                    <tr>
+                        <td>{{ tx.date_time|date:"Y-m-d H:i" }}</td>
+                        <td>{{ tx.type }}</td>
+                        <td>{{ tx.recipient }}</td>
+                        <td>{{ tx.amount }} RWF</td>
+                        <td>{{ tx.transaction_id }}</td>
+                        <td>{{ tx.details }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get URL parameters for debugging
+        const urlParams = new URLSearchParams(window.location.search);
+        const codeHolder = urlParams.get('code_holder');
+        const receiver = urlParams.get('receiver');
+        const startDate = urlParams.get('start_date');
+        const endDate = urlParams.get('end_date');
+
+        // Log filter parameters for debugging
+        console.log('Filter parameters:', {
+            start_date: startDate,
+            end_date: endDate,
+            code_holder: codeHolder,
+            receiver: receiver
+        });
+
+        // Initialize date range picker
+        const startDateInput = document.getElementById('start_date');
+        const endDateInput = document.getElementById('end_date');
+        const dateRangeInput = document.getElementById('date_range');
+
+        // Set initial date range values
+        let startDateVal = startDateInput.value;
+        let endDateVal = endDateInput.value;
+
+        // Initialize daterangepicker with improved configuration
+        $(dateRangeInput).daterangepicker({
+            autoUpdateInput: false, // We'll update manually for better control
+            locale: {
+                cancelLabel: 'Clear',
+                format: 'YYYY-MM-DD',
+                applyLabel: 'Apply',
+                separator: ' - ',
+                firstDay: 1 // Start week on Monday
+            },
+            startDate: startDateVal || moment().subtract(30, 'days'),
+            endDate: endDateVal || moment(),
+            opens: 'right', // Open to the right to avoid overflow on mobile
+            showDropdowns: true, // Allow month/year dropdown selection
+            linkedCalendars: false, // Allow independent month navigation
+            alwaysShowCalendars: true, // Always show calendars, even when selecting ranges
+            ranges: {
+               'Today': [moment(), moment()],
+               'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+               'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+               'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+               'This Month': [moment().startOf('month'), moment().endOf('month')],
+               'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+            },
+            maxDate: moment() // Prevent selecting future dates
+        });
+
+        // Handle date range selection
+        $(dateRangeInput).on('apply.daterangepicker', function(ev, picker) {
+            // Format the display value
+            const displayFormat = 'MMM D, YYYY';
+            const displayValue = picker.startDate.format(displayFormat) + ' - ' + picker.endDate.format(displayFormat);
+            $(this).val(displayValue);
+
+            // Update hidden inputs with ISO formatted dates for form submission
+            startDateInput.value = picker.startDate.format('YYYY-MM-DD');
+            endDateInput.value = picker.endDate.format('YYYY-MM-DD');
+
+            console.log('Date range selected:', startDateInput.value, 'to', endDateInput.value);
+        });
+
+        // Handle date range clear
+        $(dateRangeInput).on('cancel.daterangepicker', function(ev, picker) {
+            $(this).val('');
+            startDateInput.value = '';
+            endDateInput.value = '';
+        });
+
+        // Set initial display value if dates are provided
+        if (startDateVal && endDateVal) {
+            const displayFormat = 'MMM D, YYYY';
+            const startDisplay = moment(startDateVal).format(displayFormat);
+            const endDisplay = moment(endDateVal).format(displayFormat);
+            $(dateRangeInput).val(`${startDisplay} - ${endDisplay}`);
+        }
+
+        // Validate form submission
+        document.querySelector('form').addEventListener('submit', function(event) {
+            // Validate date inputs
+            if (startDateInput.value || endDateInput.value) {
+                // If one date is provided, both should be provided
+                if (!startDateInput.value || !endDateInput.value) {
+                    event.preventDefault();
+                    // Show error in a more user-friendly way
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-danger mt-3';
+                    alertDiv.innerHTML = '<strong>Error:</strong> Please select both start and end dates';
+
+                    // Insert the alert before the form
+                    const form = document.querySelector('form');
+                    form.parentNode.insertBefore(alertDiv, form.nextSibling);
+
+                    // Scroll to the alert
+                    alertDiv.scrollIntoView({ behavior: 'smooth' });
+
+                    // Remove the alert after 5 seconds
+                    setTimeout(() => {
+                        alertDiv.remove();
+                    }, 5000);
+
+                    return false;
+                }
+
+                // Check date format using regex for YYYY-MM-DD (hidden inputs should always have this format)
+                const dateFormatRegex = /^\d{4}-\d{2}-\d{2}$/;
+                if (!dateFormatRegex.test(startDateInput.value) || !dateFormatRegex.test(endDateInput.value)) {
+                    event.preventDefault();
+                    // Focus on the date range input to encourage reselection
+                    dateRangeInput.focus();
+
+                    // Show error message
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-danger mt-3';
+                    alertDiv.innerHTML = '<strong>Error:</strong> Invalid date format. Please use the date picker to select dates.';
+
+                    // Insert the alert before the form
+                    const form = document.querySelector('form');
+                    form.parentNode.insertBefore(alertDiv, form.nextSibling);
+
+                    // Remove the alert after 5 seconds
+                    setTimeout(() => {
+                        alertDiv.remove();
+                    }, 5000);
+
+                    return false;
+                }
+
+                // Check if start date is before or equal to end date
+                const startDate = new Date(startDateInput.value);
+                const endDate = new Date(endDateInput.value);
+
+                if (startDate > endDate) {
+                    event.preventDefault();
+
+                    // Show error message
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-danger mt-3';
+                    alertDiv.innerHTML = '<strong>Error:</strong> Start date must be before or equal to end date';
+
+                    // Insert the alert before the form
+                    const form = document.querySelector('form');
+                    form.parentNode.insertBefore(alertDiv, form.nextSibling);
+
+                    // Remove the alert after 5 seconds
+                    setTimeout(() => {
+                        alertDiv.remove();
+                    }, 5000);
+
+                    return false;
+                }
+            }
+
+            return true;
+        });
+    });
+</script>
+{% endblock %}
