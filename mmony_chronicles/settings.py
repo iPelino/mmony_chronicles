@@ -131,3 +131,9 @@ CRISPY_TEMPLATE_PACK = 'bootstrap4'
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'home'
 LOGIN_URL = 'login'
+
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://momony-ageah9egfgcedshv.canadacentral-01.azurecontainerapps.io',
+]
+
