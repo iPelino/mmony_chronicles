@@ -15,7 +15,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-mmony-chronicles-secret-key-change-in-production'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['localhost', 'momony-ageah9egfgcedshv.canadacentral-01.azurewebsites.net']
 
@@ -134,6 +134,6 @@ LOGIN_URL = 'login'
 
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://momony-ageah9egfgcedshv.canadacentral-01.azurecontainerapps.io',
+    'https://momony-ageah9egfgcedshv.canadacentral-01.azurewebsites.net',
 ]
 
