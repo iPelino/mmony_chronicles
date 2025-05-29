@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
-from django.db.models import Sum, Count
+from django.db.models import Sum, Count, F
 from django.views.generic import TemplateView, FormView
 from .models import (
     IncomingMoney, PaymentToCodeHolder, TransferToMobile, BankDeposit,
@@ -96,6 +96,8 @@ class DashboardView(TemplateView):
         user = self.request.user
         from django.db.models.functions import TruncDay
         from django.db.models import Value, CharField
+        from collections import defaultdict
+        from datetime import datetime
 
         # Define a helper to get annotated querysets
         def get_annotated_queryset(model, transaction_type, amount_field='amount'):
@@ -105,7 +107,7 @@ class DashboardView(TemplateView):
                 amount_val=F(amount_field)
             ).values('day', 'type', 'amount_val')
 
-        # Combine querysets using union
+        # Get all transaction querysets separately
         incoming_money_qs = get_annotated_queryset(IncomingMoney, 'incoming')
         payment_to_code_qs = get_annotated_queryset(PaymentToCodeHolder, 'payment_to_code')
         mobile_transfer_qs = get_annotated_queryset(TransferToMobile, 'mobile_transfer')
@@ -115,24 +117,38 @@ class DashboardView(TemplateView):
         third_party_qs = get_annotated_queryset(ThirdPartyTransaction, 'third_party')
         withdrawal_qs = get_annotated_queryset(WithdrawalFromAgent, 'withdrawal')
         bank_transfer_qs = get_annotated_queryset(BankTransfer, 'bank_transfer')
-        internet_bundle_qs = get_annotated_queryset(InternetBundlePurchase, 'internet_bundle')
-        voice_bundle_qs = get_annotated_queryset(VoiceBundlePurchase, 'voice_bundle')
 
-        # Union all querysets
-        all_transactions_qs = incoming_money_qs.union(
-            payment_to_code_qs, mobile_transfer_qs, bank_deposit_qs,
-            airtime_bill_qs, cash_power_bill_qs, third_party_qs,
-            withdrawal_qs, bank_transfer_qs, internet_bundle_qs, voice_bundle_qs
-        )
+        # Skip models without date_time field
+        # internet_bundle_qs = get_annotated_queryset(InternetBundlePurchase, 'internet_bundle')
+        # voice_bundle_qs = get_annotated_queryset(VoiceBundlePurchase, 'voice_bundle')
 
-        # Aggregate daily transactions
-        daily_txns = all_transactions_qs.values('day', 'type').annotate(
-            total_amount=Sum('amount_val'),
-            transaction_count=Count('amount_val')
-        ).order_by('day', 'type')
+        # Combine all transactions into a single list
+        all_transactions = list(incoming_money_qs) + list(payment_to_code_qs) + list(mobile_transfer_qs) + \
+                          list(bank_deposit_qs) + list(airtime_bill_qs) + list(cash_power_bill_qs) + \
+                          list(third_party_qs) + list(withdrawal_qs) + list(bank_transfer_qs)
 
-        # Convert to list of dictionaries
-        return list(daily_txns)
+        # Aggregate transactions by day and type in Python
+        aggregated_data = defaultdict(lambda: {'total_amount': 0, 'transaction_count': 0})
+
+        for transaction in all_transactions:
+            key = (transaction['day'], transaction['type'])
+            aggregated_data[key]['total_amount'] += float(transaction['amount_val'])
+            aggregated_data[key]['transaction_count'] += 1
+
+        # Convert to list of dictionaries in the expected format
+        daily_txns = []
+        for (day, txn_type), data in aggregated_data.items():
+            daily_txns.append({
+                'day': day,
+                'type': txn_type,
+                'total_amount': data['total_amount'],
+                'transaction_count': data['transaction_count']
+            })
+
+        # Sort by day and type
+        daily_txns.sort(key=lambda x: (x['day'], x['type']))
+
+        return daily_txns
 
     def get_top_recipients(self):
         # Get top recipients of mobile transfers for the current user

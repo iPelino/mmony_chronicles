@@ -17,7 +17,7 @@ SECRET_KEY = 'django-insecure-mmony-chronicles-secret-key-change-in-production'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', 'momony-ageah9egfgcedshv.canadacentral-01.azurewebsites.net']
+ALLOWED_HOSTS = ['localhost', 'momony-ageah9egfgcedshv.canadacentral-01.azurewebsites.net', '127.0.0.1']
 
 # Application definition
 
