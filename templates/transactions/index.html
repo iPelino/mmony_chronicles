@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - Mobile Money Chronicles{% endblock %}
+
+{% block content %}
+<div class="jumbotron">
+    <h1 class="display-4">Welcome to Mobile Money Chronicles</h1>
+    <p class="lead">Analyze and visualize your mobile money transaction data with ease.</p>
+    <hr class="my-4">
+    <p>Upload your XML transaction data to get started.</p>
+    <a class="btn btn-primary btn-lg" href="{% url 'upload' %}" role="button">Upload Data</a>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Upload</h5>
+                <p class="card-text">Upload your XML transaction data to begin analysis.</p>
+                <a href="{% url 'upload' %}" class="btn btn-primary">Go to Upload</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Dashboard</h5>
+                <p class="card-text">View interactive visualizations of your transaction data.</p>
+                <a href="{% url 'dashboard' %}" class="btn btn-primary">Go to Dashboard</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Analysis</h5>
+                <p class="card-text">Get detailed analysis and insights from your transaction data.</p>
+                <a href="{% url 'analysis' %}" class="btn btn-primary">Go to Analysis</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if total_transactions > 0 %}
+<div class="row mt-5">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5>Transaction Statistics</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h3>{{ total_transactions }}</h3>
+                                <p>Total Transactions</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h3>{{ incoming_count }}</h3>
+                                <p>Incoming Transactions</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h3>{{ outgoing_count }}</h3>
+                                <p>Outgoing Transactions</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
