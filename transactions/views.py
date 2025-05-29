@@ -256,9 +256,14 @@ class AnalysisView(TemplateView):
         user = self.request.user
         from django.db.models.functions import TruncMonth
         from django.db.models import Value, CharField, F
+        import pandas as pd
 
         # Define a helper to get annotated querysets for monthly trends
         def get_annotated_queryset(model, transaction_type, amount_field='amount'):
+            # Skip models without date_time field
+            if not hasattr(model, 'date_time'):
+                return None
+
             return model.objects.filter(user=user).annotate(
                 month=TruncMonth('date_time'),
                 type=Value(transaction_type, output_field=CharField()),
@@ -283,25 +288,33 @@ class AnalysisView(TemplateView):
             withdrawal_qs, bank_transfer_qs
         )
 
-        # Aggregate monthly trends
-        monthly_summary = all_transactions_qs.values('month', 'type').annotate(
-            total_amount=Sum('amount_val')
-        ).order_by('month', 'type')
+        # Convert to list and then to DataFrame
+        all_transactions_list = list(all_transactions_qs)
+        df = pd.DataFrame(all_transactions_list)
 
-        # Convert to a more suitable format for the template (e.g., pivot in Python)
-        # This part still requires some Python processing if the front-end expects a pivoted table.
-        # For now, return as a list of dicts, similar to how pandas.to_dict('records') would work.
-        # If the front-end can handle this format, it's more efficient.
-        # Otherwise, a small pivot logic can be added here or in JS.
-        return list(monthly_summary)
+        if df.empty:
+            return []
+
+        # Aggregate monthly trends using pandas
+        monthly_summary = df.groupby(['month', 'type'])['amount_val'].sum().reset_index()
+        monthly_summary = monthly_summary.rename(columns={'amount_val': 'total_amount'})
+        monthly_summary = monthly_summary.sort_values(['month', 'type'])
+
+        # Convert to list of dictionaries for the template
+        return monthly_summary.to_dict('records')
 
     def get_transaction_frequency(self):
         user = self.request.user
         from django.db.models.functions import TruncDay
         from django.db.models import Value, CharField, F
+        import pandas as pd
 
         # Define a helper to get annotated querysets for transaction frequency
         def get_annotated_queryset(model):
+            # Skip models without date_time field
+            if not hasattr(model, 'date_time'):
+                return None
+
             return model.objects.filter(user=user).annotate(
                 date=TruncDay('date_time'),
                 # Add a dummy amount_val for union compatibility, not used for count
@@ -318,22 +331,30 @@ class AnalysisView(TemplateView):
         third_party_qs = get_annotated_queryset(ThirdPartyTransaction)
         withdrawal_qs = get_annotated_queryset(WithdrawalFromAgent)
         bank_transfer_qs = get_annotated_queryset(BankTransfer)
-        internet_bundle_qs = get_annotated_queryset(InternetBundlePurchase)
-        voice_bundle_qs = get_annotated_queryset(VoiceBundlePurchase)
+        # Skip models without date_time field
+        # internet_bundle_qs = get_annotated_queryset(InternetBundlePurchase)
+        # voice_bundle_qs = get_annotated_queryset(VoiceBundlePurchase)
 
-        # Union all querysets
+        # Union all querysets (excluding None values)
         all_transactions_qs = incoming_money_qs.union(
             payment_to_code_qs, mobile_transfer_qs, bank_deposit_qs,
             airtime_bill_qs, cash_power_bill_qs, third_party_qs,
-            withdrawal_qs, bank_transfer_qs, internet_bundle_qs, voice_bundle_qs
+            withdrawal_qs, bank_transfer_qs
         )
 
-        # Aggregate transaction frequency by date
-        frequency = all_transactions_qs.values('date').annotate(
-            count=Count('date')
-        ).order_by('date')
+        # Convert to list and then to DataFrame
+        all_transactions_list = list(all_transactions_qs)
+        df = pd.DataFrame(all_transactions_list)
 
-        return list(frequency)
+        if df.empty:
+            return []
+
+        # Aggregate transaction frequency by date using pandas
+        frequency = df.groupby('date').size().reset_index(name='count')
+        frequency = frequency.sort_values('date')
+
+        # Convert to list of dictionaries for the template
+        return frequency.to_dict('records')
 
     def get_anomalies(self):
         user = self.request.user
@@ -342,6 +363,10 @@ class AnalysisView(TemplateView):
 
         # Define a helper to get annotated querysets for anomalies
         def get_annotated_queryset(model, transaction_type, is_outgoing):
+            # Skip models without date_time field
+            if not hasattr(model, 'date_time'):
+                return None
+
             amount_field = 'amount'
             # Use Coalesce to handle cases where a field might not exist on a model
             description_field = Coalesce(F('description'), Value('')) if hasattr(model, 'description') else Value('')
@@ -476,6 +501,10 @@ class AnalysisView(TemplateView):
 
         # Define a helper to get annotated querysets for balance trends
         def get_annotated_queryset(model, is_outgoing):
+            # Skip models without date_time field
+            if not hasattr(model, 'date_time'):
+                return None
+
             # Cast amount to DecimalField to ensure consistent type for union
             amount_expr = F('amount')
             if is_outgoing:

@@ -18,6 +18,8 @@ def parse_xml(xml_file):
 def extract_transaction_data(sms_elements, user=None):
     processed_count = 0
     failed_count = 0
+    data = []
+    failed_sms = []
 
     for sms in sms_elements:
         body = sms.attrib.get("body", "")
