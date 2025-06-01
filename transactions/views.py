@@ -238,17 +238,20 @@ class AnalysisView(TemplateView):
     def get_transaction_summary(self):
         # Get summary of transactions by type
         summary = {}
+        from django.db.models.functions import Coalesce
+        from django.db.models import Value, DecimalField
 
         user = self.request.user
-        summary['Incoming Money'] = IncomingMoney.objects.filter(user=user).aggregate(total=Sum('amount'))['total'] or 0
-        summary['Payment to Code Holder'] = PaymentToCodeHolder.objects.filter(user=user).aggregate(total=Sum('amount'))['total'] or 0
-        summary['Transfer to Mobile'] = TransferToMobile.objects.filter(user=user).aggregate(total=Sum('amount'))['total'] or 0
-        summary['Bank Deposit'] = BankDeposit.objects.filter(user=user).aggregate(total=Sum('amount'))['total'] or 0
-        summary['Airtime Bill Payment'] = AirtimeBillPayment.objects.filter(user=user).aggregate(total=Sum('amount'))['total'] or 0
-        summary['Cash Power Bill Payment'] = CashPowerBillPayment.objects.filter(user=user).aggregate(total=Sum('amount'))['total'] or 0
-        summary['Third Party Transaction'] = ThirdPartyTransaction.objects.filter(user=user).aggregate(total=Sum('amount'))['total'] or 0
-        summary['Withdrawal from Agent'] = WithdrawalFromAgent.objects.filter(user=user).aggregate(total=Sum('amount'))['total'] or 0
-        summary['Bank Transfer'] = BankTransfer.objects.filter(user=user).aggregate(total=Sum('amount'))['total'] or 0
+        # Use Coalesce to handle cases where amount might be None or 'none'
+        summary['Incoming Money'] = IncomingMoney.objects.filter(user=user).aggregate(total=Sum(Coalesce('amount', 0)))['total'] or 0
+        summary['Payment to Code Holder'] = PaymentToCodeHolder.objects.filter(user=user).aggregate(total=Sum(Coalesce('amount', 0)))['total'] or 0
+        summary['Transfer to Mobile'] = TransferToMobile.objects.filter(user=user).aggregate(total=Sum(Coalesce('amount', 0)))['total'] or 0
+        summary['Bank Deposit'] = BankDeposit.objects.filter(user=user).aggregate(total=Sum(Coalesce('amount', 0)))['total'] or 0
+        summary['Airtime Bill Payment'] = AirtimeBillPayment.objects.filter(user=user).aggregate(total=Sum(Coalesce('amount', 0)))['total'] or 0
+        summary['Cash Power Bill Payment'] = CashPowerBillPayment.objects.filter(user=user).aggregate(total=Sum(Coalesce('amount', 0)))['total'] or 0
+        summary['Third Party Transaction'] = ThirdPartyTransaction.objects.filter(user=user).aggregate(total=Sum(Coalesce('amount', 0)))['total'] or 0
+        summary['Withdrawal from Agent'] = WithdrawalFromAgent.objects.filter(user=user).aggregate(total=Sum(Coalesce('amount', 0)))['total'] or 0
+        summary['Bank Transfer'] = BankTransfer.objects.filter(user=user).aggregate(total=Sum(Coalesce('amount', 0)))['total'] or 0
 
         return summary
 
@@ -264,10 +267,14 @@ class AnalysisView(TemplateView):
             if not hasattr(model, 'date_time'):
                 return None
 
+            # Handle case where amount might be None or 'none'
+            from django.db.models.functions import Coalesce
+            amount_val_field = Coalesce(F(amount_field), 0)
+
             return model.objects.filter(user=user).annotate(
                 month=TruncMonth('date_time'),
                 type=Value(transaction_type, output_field=CharField()),
-                amount_val=F(amount_field)
+                amount_val=amount_val_field
             ).values('month', 'type', 'amount_val')
 
         # Combine querysets using union
@@ -315,10 +322,14 @@ class AnalysisView(TemplateView):
             if not hasattr(model, 'date_time'):
                 return None
 
+            # Handle case where amount might be None or 'none'
+            from django.db.models.functions import Coalesce
+            amount_expr = Coalesce(F('amount'), 0) if hasattr(model, 'amount') else Value(0)
+
             return model.objects.filter(user=user).annotate(
                 date=TruncDay('date_time'),
                 # Add a dummy amount_val for union compatibility, not used for count
-                amount_val=F('amount') if hasattr(model, 'amount') else Value(0)
+                amount_val=amount_expr
             ).values('date', 'amount_val')
 
         # Combine querysets using union
@@ -368,14 +379,16 @@ class AnalysisView(TemplateView):
                 return None
 
             amount_field = 'amount'
-            # Use Coalesce to handle cases where a field might not exist on a model
+            # Use Coalesce to handle cases where a field might not exist on a model or might be None
             description_field = Coalesce(F('description'), Value('')) if hasattr(model, 'description') else Value('')
             sender_field = Coalesce(F('sender'), Value('')) if hasattr(model, 'sender') else Value('')
             recipient_field = Coalesce(F('recipient'), Value('')) if hasattr(model, 'recipient') else Value('')
+            # Handle case where amount might be None or 'none'
+            amount_val_field = Coalesce(F(amount_field), 0)
 
             qs = model.objects.filter(user=user).annotate(
                 date_time_val=F('date_time'),
-                amount_val=F(amount_field),
+                amount_val=amount_val_field,
                 type_val=Value(transaction_type, output_field=CharField()),
                 id_val=F('id'),
                 description_val=description_field,
@@ -409,7 +422,12 @@ class AnalysisView(TemplateView):
         # Convert to list of dictionaries and then to DataFrame
         all_transactions_list = []
         for tx in all_transactions_qs:
-            amount = float(tx['amount_val'])
+            # Handle case where amount_val might be None or 'none'
+            try:
+                amount = float(tx['amount_val']) if tx['amount_val'] not in (None, 'none') else 0.0
+            except (ValueError, TypeError):
+                amount = 0.0
+
             # Negate amount for outgoing transactions (re-apply logic from original)
             if tx['type_val'] in ['Payment to Code Holder', 'Transfer to Mobile', 'Airtime Bill Payment',
                                   'Cash Power Bill Payment', 'Third Party Transaction', 'Withdrawal from Agent',
@@ -487,10 +505,12 @@ class AnalysisView(TemplateView):
     def get_transaction_costs(self):
         # Get transaction costs (fees)
         costs = {}
+        from django.db.models.functions import Coalesce
 
-        costs['Transfer to Mobile'] = TransferToMobile.objects.aggregate(total=Sum('fee'))['total'] or 0
-        costs['Airtime Bill Payment'] = AirtimeBillPayment.objects.aggregate(total=Sum('fee'))['total'] or 0
-        costs['Cash Power Bill Payment'] = CashPowerBillPayment.objects.aggregate(total=Sum('fee'))['total'] or 0
+        # Use Coalesce to handle cases where fee might be None or 'none'
+        costs['Transfer to Mobile'] = TransferToMobile.objects.aggregate(total=Sum(Coalesce('fee', 0)))['total'] or 0
+        costs['Airtime Bill Payment'] = AirtimeBillPayment.objects.aggregate(total=Sum(Coalesce('fee', 0)))['total'] or 0
+        costs['Cash Power Bill Payment'] = CashPowerBillPayment.objects.aggregate(total=Sum(Coalesce('fee', 0)))['total'] or 0
 
         return costs
 
@@ -506,9 +526,13 @@ class AnalysisView(TemplateView):
                 return None
 
             # Cast amount to DecimalField to ensure consistent type for union
-            amount_expr = F('amount')
+            # Handle case where amount might be 'none' by using Coalesce
+            from django.db.models.functions import Coalesce
+
+            # Default to 0 if amount is None or 'none'
+            amount_expr = Coalesce(F('amount'), 0)
             if is_outgoing:
-                amount_expr = -F('amount') # Negate amount for outgoing transactions
+                amount_expr = -amount_expr # Negate amount for outgoing transactions
 
             return model.objects.filter(user=user).annotate(
                 date_time_val=F('date_time'),
