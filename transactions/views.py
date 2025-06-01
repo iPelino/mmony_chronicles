@@ -258,7 +258,7 @@ class AnalysisView(TemplateView):
     def get_monthly_trends(self):
         user = self.request.user
         from django.db.models.functions import TruncMonth
-        from django.db.models import Value, CharField, F
+        from django.db.models import Value, CharField, F, DecimalField, Sum
         import pandas as pd
 
         # Define a helper to get annotated querysets for monthly trends
@@ -313,7 +313,7 @@ class AnalysisView(TemplateView):
     def get_transaction_frequency(self):
         user = self.request.user
         from django.db.models.functions import TruncDay
-        from django.db.models import Value, CharField, F
+        from django.db.models import Value, CharField, F, DecimalField
         import pandas as pd
 
         # Define a helper to get annotated querysets for transaction frequency
@@ -369,7 +369,7 @@ class AnalysisView(TemplateView):
 
     def get_anomalies(self):
         user = self.request.user
-        from django.db.models import Value, CharField, F
+        from django.db.models import Value, CharField, F, DecimalField
         from django.db.models.functions import Coalesce
 
         # Define a helper to get annotated querysets for anomalies
@@ -506,6 +506,7 @@ class AnalysisView(TemplateView):
         # Get transaction costs (fees)
         costs = {}
         from django.db.models.functions import Coalesce
+        from django.db.models import DecimalField, Sum
 
         # Use Coalesce to handle cases where fee might be None or 'none'
         costs['Transfer to Mobile'] = TransferToMobile.objects.aggregate(total=Sum(Coalesce('fee', 0, output_field=DecimalField(max_digits=10, decimal_places=2))))['total'] or 0

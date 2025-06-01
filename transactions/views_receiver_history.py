@@ -91,14 +91,38 @@ class ReceiverHistoryView(TemplateView):
         if start_date_obj and end_date_obj:
             print(f"Actual date range for filtering: {start_date_obj} to {end_date_obj} (inclusive)")
 
-        # Apply code holder filter if provided
-        if code_holder:
-            code_holder_filter &= Q(recipient__exact=code_holder)
+        # Create filter conditions for code_holder and receiver
+        code_holder_condition = Q()
 
-        # Apply receiver filter if provided
+        if code_holder:
+            code_holder_condition = Q(recipient__icontains=code_holder)
+
+        # Initialize receiver conditions
+        receiver_condition_basic = Q()
+        receiver_condition_mobile = Q()
+
         if receiver:
-            mobile_filter &= Q(recipient__exact=receiver) | Q(recipient_number__exact=receiver)
-            bank_filter &= Q(recipient__exact=receiver)
+            # For PaymentToCodeHolder and BankTransfer, only recipient field is available
+            receiver_condition_basic = Q(recipient__icontains=receiver)
+            # For TransferToMobile, both recipient and recipient_number fields are available
+            receiver_condition_mobile = receiver_condition_basic | Q(recipient_number__icontains=receiver)
+
+        # Apply filters to each transaction type
+        if code_holder and receiver:
+            # If both filters are provided, return transactions that match either criteria
+            code_holder_filter &= (code_holder_condition | receiver_condition_basic)
+            mobile_filter &= (code_holder_condition | receiver_condition_mobile)
+            bank_filter &= (code_holder_condition | receiver_condition_basic)
+        elif code_holder:
+            # If only code_holder filter is provided
+            code_holder_filter &= code_holder_condition
+            mobile_filter &= code_holder_condition
+            bank_filter &= code_holder_condition
+        elif receiver:
+            # If only receiver filter is provided
+            code_holder_filter &= receiver_condition_basic
+            mobile_filter &= receiver_condition_mobile
+            bank_filter &= receiver_condition_basic
 
         # Get transactions for the current user with applied filters
         user = self.request.user
