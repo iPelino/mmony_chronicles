@@ -77,7 +77,7 @@ DATABASES = {
         'USER': 'wujcqsztgv',
         'PASSWORD': 'LZBOWPe0pgM6A2$8',
         'HOST': 'momony-server.postgres.database.azure.com',
-        'PORT': 5432,
+        'PORT': '5432',
         'OPTIONS': {
             'sslmode': 'require',
         },
