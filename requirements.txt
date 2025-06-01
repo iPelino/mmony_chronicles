@@ -1,15 +1,21 @@
-# Django and related packages
-Django==4.2.0
+asgiref==3.8.1
+certifi==2025.4.26
+charset-normalizer==3.4.2
+Django==4.2
 django-crispy-forms==2.0
-gunicorn==21.2.0  # For production deployment
-whitenoise==6.5.0  # For serving static files
-
-# Data processing and visualization
+gunicorn==21.2.0
+idna==3.10
+narwhals==1.41.0
+numpy==2.2.5
+packaging==25.0
 pandas==2.2.3
 plotly==6.0.1
-numpy==2.2.5
-
-# Utilities
+psycopg2-binary==2.9.10
 python-dateutil==2.9.0.post0
 pytz==2025.2
 requests==2.32.3
+six==1.17.0
+sqlparse==0.5.3
+tzdata==2025.2
+urllib3==2.4.0
+whitenoise==6.5.0
